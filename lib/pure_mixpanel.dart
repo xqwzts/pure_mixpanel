@@ -7,12 +7,22 @@ import 'package:http/http.dart' as http;
 import 'package:meta/meta.dart';
 
 const MixpanelBaseUri = 'api.mixpanel.com';
+const _profileEndpoint = '/engage';
 
 /// Allows one to track Mixpanel events.
 class Mixpanel {
   final String token;
   final bool debug;
   final bool trackIp;
+
+  static const actionSet = '\$set';
+  static const actionSetOnce = '\$set_once';
+  static const actionAdd = '\$add';
+  static const actionAppend = '\$append';
+  static const actionUnion = '\$union';
+  static const actionRemove = '\$remove';
+  static const actionUnset = '\$unset';
+  static const actionDelete = '\$delete';
 
   Mixpanel({@required this.token, this.debug: false, this.trackIp: false});
 
@@ -46,6 +56,42 @@ class Mixpanel {
     if (debug) {
       print(
         'mixpanel req\n\tproperties: $properties\n\turi: ${uri.toString()}',
+      );
+    }
+
+    return http.get(uri.toString());
+  }
+
+  Future<http.Response> engage(
+    String actionName, {
+    String distinctID,
+    dynamic properties,
+  }) async {
+    if (properties == null) {
+      properties = <String, String>{};
+    }
+
+    Map<String, dynamic> payload = {
+      '\$token': this.token,
+    };
+
+    if (distinctID != null) {
+      payload['\$distinct_id'] = distinctID;
+    }
+
+    payload[actionName] = properties;
+
+    var data = MixpanelPayload.create(payload: payload);
+
+    final uri = MixpanelUri.create(path: _profileEndpoint, queryParameters: {
+      'data': data,
+      'verbose': (this.debug ? '1' : '0'),
+      'ip': (this.trackIp ? '1' : '0'),
+    });
+
+    if (debug) {
+      print(
+        'mixpanel req\n\tpayload: $payload\n\turi: ${uri.toString()}',
       );
     }
 
