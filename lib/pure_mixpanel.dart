@@ -26,45 +26,38 @@ class Mixpanel {
     }
     properties.putIfAbsent('token', () => this.token);
 
-    var payload = MixpanelPayload.createEncoded(
-      event: eventName,
-      distinctID: distinctID,
-      properties: properties,
-    );
+    if (distinctID != null) {
+      properties.putIfAbsent('distinct_id', () => distinctID);
+    }
+
+    var payload = {
+      'event': eventName,
+      'properties': properties,
+    };
+
+    var data = MixpanelPayload.create(payload: payload);
+
     final uri = MixpanelUri.create(path: '/track', queryParameters: {
-      'data': payload,
+      'data': data,
       'verbose': (this.debug ? '1' : '0'),
       'ip': (this.trackIp ? '1' : '0'),
     });
+
     if (debug) {
       print(
         'mixpanel req\n\tproperties: $properties\n\turi: ${uri.toString()}',
       );
     }
+
     return http.get(uri.toString());
   }
 }
 
 class MixpanelPayload {
-  static String createEncoded({
-    @required String event,
-      String distinctID,
-    Map<String, String> properties,
+  static String create({
+    @required Map<String, dynamic> payload,
   }) {
-    if (distinctID != null) {
-      properties.putIfAbsent('distinct_id', () => distinctID);
-    }
-    var payload = {
-      'event': event,
-      'properties': properties,
-    };
     var jsonString = json.encode(payload);
-    var bytes = utf8.encode(jsonString);
-    return base64.encode(bytes);
-  }
-
-  String encode() {
-    var jsonString = json.encode(this);
     var bytes = utf8.encode(jsonString);
     return base64.encode(bytes);
   }
